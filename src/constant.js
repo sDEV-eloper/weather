@@ -8,6 +8,7 @@
  const HAZE="https://images.pexels.com/photos/7244475/pexels-photo-7244475.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2";
 
 
+
 export const weatherConditions = [
     { code: '01d', imageUrl: CLEAR_IMG },
     { code: '01n', imageUrl: CLEAR_IMG },

@@ -1,27 +1,24 @@
+
+
+
+import React, { useState, useEffect } from "react";
+import Search from "./Search";
 import { WiHumidity } from "react-icons/wi";
 import { FiWind } from "react-icons/fi";
 import { TbTemperature } from "react-icons/tb";
 import { weatherConditions } from "./constant";
-import { useEffect, useState } from "react";
 
 function App() {
-  const [cityName, setCityName] = useState("Delhi");
-  const [city, setCity] = useState("");
-  const [temperatureCelsius, setTemperatureCelsius] = useState();
-  const [humidity, setHumidity] = useState();
-  const [windSpeed, setWindSpeed] = useState();
-  const [country, setCounty] = useState("");
-  const [iconCode, setIconCode] = useState();
-  const [description, setDescription] = useState();
-  const [imageURL, setImageURL] = useState();
+  const [weatherData, setWeatherData] = useState(null);
 
   useEffect(() => {
-    fetchWeatherDataByCity(cityName);
-  }, [city]);
+    if (weatherData) return;
+    fetchWeatherDataByCity("Delhi");
+  }, [weatherData]);
 
   async function fetchWeatherDataByCity(cityName) {
     try {
-      const apiKey = "fe5e19968b594460c23f65cc6456e885";
+      const apiKey = import.meta.env.VITE_API_KEY;
       const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}`;
       const response = await fetch(apiUrl);
       if (!response.ok) {
@@ -29,92 +26,57 @@ function App() {
       }
 
       const data = await response.json();
-      console.log(data);
       const celsius = data.main.temp - 273.15;
-
-      setTemperatureCelsius(celsius.toFixed(2));
-      setHumidity(data.main.humidity);
-      setWindSpeed(Math.round(data.wind.speed * 3.6));
-      setCounty(data.sys.country);
-      setCity(data.name);
-      setIconCode(data.weather[0].icon);
-      setDescription(data.weather[0].description.toUpperCase());
-      setImageURL(getImageUrlByCode(iconCode));
-
-      console.log("img", getImageUrlByCode(iconCode));
+      const weatherInfo = {
+        city: data.name,
+        country: data.sys.country,
+        temperatureCelsius: celsius.toFixed(2),
+        humidity: data.main.humidity,
+        windSpeed: Math.round(data.wind.speed * 3.6),
+        iconCode: data.weather[0].icon,
+        description: data.weather[0].description.toUpperCase(),
+        imageURL: getImageUrlByCode(data.weather[0].icon)
+      };
+      setWeatherData(weatherInfo);
     } catch (error) {
-      // Handle errors
       console.error("There was a problem with the fetch operation:", error);
     }
   }
-  const handleSearch = async () => {
+
+  // Filter method to find the image URL for a specific condition code
+  function getImageUrlByCode(conditionCode) {
+    const condition = weatherConditions.find(item => item.code === conditionCode);
+    return condition ? condition.imageUrl : null;
+  }
+
+  const handleSearch = async (cityName) => {
     await fetchWeatherDataByCity(cityName);
   };
 
-  const handleInputChange = (event) => {
-    setCityName(event.target.value);
-  };
-
-  const handleSubmit = (event) => {
-    event.preventDefault(); // Prevent form submission
-    handleSearch();
-  };
-
-
-
-// Filter method to find the image URL for a specific condition code
-function getImageUrlByCode(conditionCode) {
-  const condition = weatherConditions.find(item => item.code === conditionCode);
-  return condition ? condition.imageUrl : null;
-}
-
-
-
-
-
-
   return (
     <>
-      <div className="text-gray-600 body-font bg-cover  bg-gradient-to-r from-slate-900 to-slate-700 px-16  p-28">
-      <div className="container mx-auto flex px-5 py-10 md:flex-row flex-col items-center  bg-white rounded-xl  ">
+      <div className="text-gray-600 body-font bg-cover bg-gradient-to-r from-slate-900 to-slate-700 px-16 p-28">
+       
+        {weatherData && (
+          <div className="container mx-auto flex px-5 py-10 md:flex-row flex-col items-center  bg-white rounded-xl  ">
           <div className="lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 flex flex-col md:items-start md:text-left mb-16 md:mb-0 items-center text-center ">
             <h1 className="title-font sm:text-4xl text-3xl mb-4 font-medium text-gray-900">
-              {city}, {country}
+              {weatherData.city}, {weatherData.country}
             </h1>
             <div className="flex  items-center justify-start gap-2 mb-4">
               <img
-                src={`http://openweathermap.org/img/w/${iconCode}.png`}
+                src={`http://openweathermap.org/img/w/${weatherData.iconCode}.png`}
                 alt="Weather Icon"
                 className="rounded-lg bg-gray-200"
                 width="40"
               />
               <p className=" text-lg font-medium text-gray-400 leading-relaxed">
-                {description}
+                {weatherData.description}
               </p>
             </div>
             <div className="flex w-full md:justify-start justify-center items-end mb-8">
               {/* <Search/> */}
-              <form
-                onSubmit={handleSubmit}
-                className="flex w-full md:justify-start justify-center items-end"
-              >
-                <div className="relative mr-4 md:w-full lg:w-full xl:w-1/2 w-2/4">
-                  <input
-                    type="text"
-                    placeholder="City Name"
-                    onChange={handleInputChange}
-                    value={cityName}
-                    name="hero-field"
-                    className="w-full bg-gray-100 rounded border bg-opacity-50 border-gray-300 focus:ring-2 focus:ring-indigo-200 focus:bg-transparent focus:border-indigo-500 text-base outline-none text-gray-700 py-1 px-3 leading-8 transition-colors duration-200 ease-in-out"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="inline-flex text-white bg-indigo-500 border-0 py-2 px-6 focus:outline-none hover:bg-indigo-600 rounded text-lg"
-                >
-                  Search
-                </button>
-              </form>
+              <Search onSearch={handleSearch} />
             </div>
 
             <div className="flex lg:flex-row md:flex-col gap-4">
@@ -127,7 +89,7 @@ function getImageUrlByCode(conditionCode) {
                     Temperature
                   </span>
                   <span className="text-4xl font-medium">
-                    {temperatureCelsius}
+                    {weatherData.temperatureCelsius}
                     <span className="text-xl">°C</span>
                   </span>
                 </span>
@@ -138,7 +100,7 @@ function getImageUrlByCode(conditionCode) {
                 <span className="flex flex-col items-center justify-center ">
                   <span className=" flex font-medium mb-2 text-center"><WiHumidity size={25} />Humidity</span>
                   <span className="text-4xl font-medium">
-                    {humidity}
+                    {weatherData.humidity}
                     <span className="text-lg">%</span>
                   </span>
                 </span>
@@ -150,7 +112,7 @@ function getImageUrlByCode(conditionCode) {
                     {" "}Wind Speed
                   </span>
                   <span className="text-4xl font-medium">
-                    {windSpeed}
+                    {weatherData.windSpeed}
                     <span className="text-lg">km/hr</span>
                   </span>
                 </span>
@@ -161,14 +123,18 @@ function getImageUrlByCode(conditionCode) {
             <img
               className="object-cover object-center rounded"
               alt="hero"
-              src={imageURL}
+              src={weatherData.imageURL}
             />
           </div>
         
         </div>
+        )}
       </div>
     </>
   );
 }
 
 export default App;
+
+
+  
