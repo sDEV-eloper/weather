@@ -3,17 +3,19 @@ import { weatherConditions } from "./constant";
 
 function useWeatherData(cityName) {
   const [weatherData, setWeatherData] = useState(null);
+  const[error, setError]=useState(false)
 
   useEffect(() => {
+    if (typeof cityName !== "string" || cityName.trim() === "") {
+      setError(true);
+      return;
+    }
     async function fetchWeatherData() {
       try {
         const apiKey = import.meta.env.VITE_API_KEY;
         const apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${cityName}&appid=${apiKey}`;
         const response = await fetch(apiUrl);
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
-
+  
         const data = await response.json();
         const celsius = data.main.temp - 273.15;
         const weatherInfo = {
@@ -27,26 +29,24 @@ function useWeatherData(cityName) {
           imageURL: getImageUrlByCode(data.weather[0].icon)
         };
         setWeatherData(weatherInfo);
+        setError(false)
       } catch (error) {
-        console.error("There was a problem with the fetch operation:", error);
+        setError(true)
+        console.error("Invalid City");
+        
       }
     }
 
     fetchWeatherData();
 
-    // Cleanup function
-    return () => {
-      setWeatherData(null);
-    };
   }, [cityName]);
 
-  // Filter method to find the image URL for a specific condition code
   function getImageUrlByCode(conditionCode) {
     const condition = weatherConditions.find(item => item.code === conditionCode);
     return condition ? condition.imageUrl : null;
   }
 
-  return weatherData;
+  return {weatherData, error};
 }
 
 export default useWeatherData;
